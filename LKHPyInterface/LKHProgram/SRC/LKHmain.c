@@ -5,7 +5,7 @@
  * This file contains the main function of the program.
  */
 
-int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLines, int numProblemLines, int* tour, int tourlen)
+int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLines, int numProblemLines, int* tour, int tourlen, int useInitialTour)
 {
     GainType Cost, OldOptimum;
     double Time, LastTime = GetTime();
@@ -22,7 +22,24 @@ int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLi
         MergeWithTourGPX2;
     // printff("PROB %s", problemFileLines);
     ReadProblem(problemFileLines, numProblemLines);
-    printff("Finished parsing problem");
+
+    if (useInitialTour) {
+        int len = 128 + tourlen * 32;
+        char* buf = malloc(len);
+        snprintf(buf, len, "DIMENSION : %d\nTOUR_SECTION\n", tourlen);
+        for (int i = 0; i < tourlen; i++) {
+            char* snum[10];
+            snprintf(snum, 10, "%d ", tour[i]);
+            strcat(buf, snum);
+        }
+        strcat(buf, "\nEOF");
+        FILE* fake_initial_tour = fmemopen(buf, strlen(buf), "r");
+        ReadTour("", &fake_initial_tour);
+        printff("Passed initial tour\n");
+        free(buf);
+    }
+    printff("Finished parsing problem\n");
+
 
     if (SubproblemSize > 0) {
         if (DelaunayPartitioning)

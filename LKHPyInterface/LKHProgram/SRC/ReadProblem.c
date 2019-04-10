@@ -1350,8 +1350,8 @@ void ReadTour(char *FileName, FILE ** File)
     unsigned int i;
     int Done = 0;
 
-    if (!(*File = fopen(FileName, "r")))
-        eprintf("Cannot open tour file: \"%s\"", FileName);
+    // if (!(*File = fopen(FileName, "r")))
+    //     eprintf("Cannot open tour file: \"%s\"", FileName);
     while ((Line = ReadLine(*File))) {
         if (!(Keyword = strtok(Line, Delimiters)))
             continue;

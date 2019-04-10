@@ -8,7 +8,7 @@ import numpy as np
 cimport numpy as np
 
 cdef extern from "LKHProgram/SRC/LKHmain.c":
-    int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLines, int numProblemLines, int* tour, int tourlen)
+    int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLines, int numProblemLines, int* tour, int tourlen, int useInitialTour)
 
 cdef char ** to_cstring_array(strings):
     cdef char **ret = <char **> malloc(len(strings) * sizeof(char *))
@@ -27,7 +27,7 @@ cdef char * to_cstring(string):
     strcpy(ret, stringCharArr)
     return ret
 
-cpdef run(problemString, params, np.ndarray[int, ndim=1, mode="c"] input):
+cpdef run(problemString, params, np.ndarray[int, ndim=1, mode="c"] input, useInitialTour):
     # cdef char * argv[2];
     # parameterFileArg = os.path.join(os.getcwd(), inputFilename).encode()
     # argv[1] = <bytes> parameterFileArg
@@ -39,7 +39,7 @@ cpdef run(problemString, params, np.ndarray[int, ndim=1, mode="c"] input):
         parameterString += string + "\n"
 
     plines = len(problemString.split('\n'))
-    status = LKHmain(to_cstring(parameterString), len(parameterFileLines), to_cstring(problemString), plines, &input[0], input.shape[0])
+    status = LKHmain(to_cstring(parameterString), len(parameterFileLines), to_cstring(problemString), plines, &input[0], input.shape[0], useInitialTour)
     return input
 
 # # How to do it inline with IPython, not practical in this case

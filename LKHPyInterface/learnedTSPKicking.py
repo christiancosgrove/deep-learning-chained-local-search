@@ -49,13 +49,14 @@ problemString2 = '\n'.join(problemFileLines2)
 
 from multiprocessing import Process, Pool
 
-# Dummy initial tour
+# Inital tours for each problem
+# To tell LKH to use these tours, set argument useInitialTour=1
 # Simply a numpy array of len(nodes)
-null1 = np.zeros(100, dtype=np.int32)
-null2 = np.zeros(100, dtype=np.int32)
+initial1 = np.arange(1, 101, dtype=np.int32)
+initial2 = np.arange(1, 101, dtype=np.int32)
 
 
-problems = [(problemString, params, null1), (problemString2, params, null2)]
+problems = [(problemString, params, initial1, 1), (problemString2, params, initial2, 1)]
 
 
 # Initialize a process pool of one process - this will run problems sequentially
