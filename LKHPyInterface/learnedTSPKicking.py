@@ -8,6 +8,8 @@ import tqdm
 from PIL import Image, ImageFile
 import torchvision
 import importlib
+import os
+import sys
 
 # %load_ext cython
 # %matplotlib inline
@@ -34,24 +36,38 @@ start = time.time()
 params = {
 	"PROBLEM_FILE":"placeholder",
 	"RUNS":1,
-	"MOVE_TYPE" : 2
+	"MOVE_TYPE" : 2,
+	"TRACE_LEVEL":0
 }
 
 with open("LKHProgram/TSP100.tsp", "r") as f:
 	problemFileLines = f.readlines()
 problemString = '\n'.join(problemFileLines)
-with open("LKHProgram/pr2392.tsp", "r") as f:
+with open("LKHProgram/TSP100.tsp", "r") as f:
 	problemFileLines2 = f.readlines()
 problemString2 = '\n'.join(problemFileLines2)
 
-from multiprocessing import Process
+from multiprocessing import Process, Pool
 
-p = Process(target=LKH.run, args=(problemString, params))
-p2 = Process(target=LKH.run, args=(problemString2, params))
-p.start()
-p2.start()
-p.join()
-p2.join()
+# Dummy initial tour
+# Simply a numpy array of len(nodes)
+null1 = np.zeros(100, dtype=np.int32)
+null2 = np.zeros(100, dtype=np.int32)
+
+
+problems = [(problemString, params, null1), (problemString2, params, null2)]
+
+
+# Initialize a process pool of one process - this will run problems sequentially
+# To run multiple LKH processes in parallel, just use pass in 2 or more
+pool = Pool(1)
+
+# Run LKH on an array of problems
+o = pool.starmap(LKH.run, problems)
+
+# Print the output of LKH on those problems
+print(o)
+# p2.join()
 
 time.time() - start
 

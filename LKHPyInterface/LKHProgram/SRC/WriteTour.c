@@ -29,31 +29,32 @@ void WriteTour(char *FileName, int *Tour, GainType Cost)
                 FileName == TourFileName ? " TOUR_FILE" :
                 FileName == OutputTourFileName ? " OUTPUT_TOUR_FILE" : "",
                 FullFileName);
-    assert(TourFile = fopen(FullFileName, "w"));
-    fprintf(TourFile, "NAME : %s." GainFormat ".tour\n", Name, Cost);
-    fprintf(TourFile, "COMMENT : Length = " GainFormat "\n", Cost);
-    fprintf(TourFile, "COMMENT : Found by LKH [Keld Helsgaun] %s",
-            ctime(&Now));
-    fprintf(TourFile, "TYPE : TOUR\n");
-    n = ProblemType != ATSP ? Dimension : Dimension / 2;
-    fprintf(TourFile, "DIMENSION : %d\n", n);
-    fprintf(TourFile, "TOUR_SECTION\n");
+    // assert(TourFile = fopen(FullFileName, "w"));
+    TourFile = stdout;
+    // fprintf(stdout, "NAME : %s." GainFormat ".tour\n", Name, Cost);
+    // fprintf(stdout, "COMMENT : Length = " GainFormat "\n", Cost);
+    // fprintf(stdout, "COMMENT : Found by LKH [Keld Helsgaun] %s",
+    //         ctime(&Now));
+    // fprintf(stdout, "TYPE : TOUR\n");
+    // n = ProblemType != ATSP ? Dimension : Dimension / 2;
+    // fprintf(stdout, "DIMENSION : %d\n", n);
+    // fprintf(stdout, "TOUR_SECTION\n");
 
     for (i = 1; i < n && Tour[i] != 1; i++);
     Forwards = ProblemType == ATSP ||
         Tour[i < n ? i + 1 : 1] < Tour[i > 1 ? i - 1 : Dimension];
     for (j = 1; j <= n; j++) {
-        fprintf(TourFile, "%d\n", Tour[i]);
+        fprintf(stdout, "%d\n", Tour[i]);
         if (Forwards) {
             if (++i > n)
                 i = 1;
         } else if (--i < 1)
             i = n;
     }
-    fprintf(TourFile, "-1\nEOF\n");
-    fclose(TourFile);
-    if (TraceLevel >= 1)
-        printff("done\n");
+    // fprintf(stdout, "-1\nEOF\n");
+    // // fclose(stdout);
+    // if (TraceLevel >= 1)
+    //     printff("done\n");
     free(FullFileName);
 }
 

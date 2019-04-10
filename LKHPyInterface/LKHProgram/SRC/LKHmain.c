@@ -5,7 +5,7 @@
  * This file contains the main function of the program.
  */
 
-int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLines, int numProblemLines)
+int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLines, int numProblemLines, int* tour, int tourlen)
 {
     GainType Cost, OldOptimum;
     double Time, LastTime = GetTime();
@@ -53,6 +53,9 @@ int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLi
         UpdateStatistics(Optimum, GetTime() - LastTime);
         RecordBetterTour();
         RecordBestTour();
+        for (int i = 0; i < tourlen; i++) {
+            tour[i] = BestTour[i];
+        }
         WriteTour(OutputTourFileName, BestTour, BestCost);
         WriteTour(TourFileName, BestTour, BestCost);
         Runs = 0;
@@ -95,8 +98,12 @@ int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLi
             BestCost = Cost;
             RecordBetterTour();
             RecordBestTour();
-            WriteTour(OutputTourFileName, BestTour, BestCost);
-            WriteTour(TourFileName, BestTour, BestCost);
+            for (int i = 0; i < tourlen; i++) {
+                tour[i] = BestTour[i];
+            }
+            // WriteTour(OutputTourFileName, BestTour, BestCost);
+            WriteTour(stdout, BestTour, BestCost);
+            // WriteTour(TourFileName, BestTour, BestCost);
         }
         OldOptimum = Optimum;
         if (Cost < Optimum) {
