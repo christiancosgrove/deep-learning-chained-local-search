@@ -25,24 +25,20 @@ cdef char * to_cstring(string):
     return ret
 
 
-cpdef run(inputFilename):
+cpdef run(problemString, params):
     # cdef char * argv[2];
     # parameterFileArg = os.path.join(os.getcwd(), inputFilename).encode()
     # argv[1] = <bytes> parameterFileArg
 
-    parameterFileLines = ["PROBLEM_FILE = placeholder","RUNS = 1"]
+    parameterFileLines = [key + " = " + str(value) for (key, value) in params.items()]
+
     parameterString = ""
     for string in parameterFileLines:
         parameterString += string + "\n"
 
+    plines = len(problemString.split('\n'))
 
-    with open("LKHProgram/TSP100.tsp", "r") as f:
-        problemFileLines = f.readlines()
-    problemString = ""
-    for string in problemFileLines:
-        problemString += string + "\n"
-
-    status = LKHmain(to_cstring(parameterString), len(parameterFileLines), to_cstring(problemString), len(problemFileLines))
+    status = LKHmain(to_cstring(parameterString), len(parameterFileLines), to_cstring(problemString), plines)
     return status
 
 # # How to do it inline with IPython, not practical in this case
