@@ -23,6 +23,8 @@ def visualize_tour(nodes, tour, out_path=None, connect_ends=True):
     scale_y = y / np.max(y)
     scale_y -= np.mean(scale_y)
 
+    plt.plot(scale_x, scale_y, 'ro')
+
     for i in range(n - 1):
         curr_index = tour[i]
         next_index = tour[i + 1]

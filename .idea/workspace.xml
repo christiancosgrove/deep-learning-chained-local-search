@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="fc3f40f2-df23-4893-bd51-80951f84303b" name="Default Changelist" comment="" />
+    <list default="true" id="fc3f40f2-df23-4893-bd51-80951f84303b" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LKHPyInterface/Visualize.py" beforeDir="false" afterPath="$PROJECT_DIR$/LKHPyInterface/Visualize.py" afterDir="false" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -9,7 +12,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="CoverageDataManager">
-    <SUITE FILE_PATH="coverage/deep_learning_chained_local_search$Visualize.coverage" NAME="Visualize Coverage Results" MODIFIED="1555008077709" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/LKHPyInterface" />
+    <SUITE FILE_PATH="coverage/deep_learning_chained_local_search$Visualize.coverage" NAME="Visualize Coverage Results" MODIFIED="1555011682764" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/LKHPyInterface" />
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
@@ -48,8 +51,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/LKHPyInterface/Visualize.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="239">
-              <caret line="41" lean-forward="true" selection-start-line="41" selection-end-line="41" />
+            <state relative-caret-position="225">
+              <caret line="47" lean-forward="true" selection-start-line="47" selection-end-line="47" />
               <folding>
                 <element signature="e#0#31#0" expanded="true" />
               </folding>
@@ -169,12 +172,12 @@
       <option name="presentableId" value="Default" />
       <updated>1554922408562</updated>
       <workItem from="1554922411191" duration="2137000" />
-      <workItem from="1554987777591" duration="4575000" />
+      <workItem from="1554987777591" duration="5075000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="6712000" />
+    <option name="totallyTimeSpent" value="7212000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-7" y="-7" width="1550" height="838" extended-state="6" />
@@ -199,8 +202,8 @@
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
-      <window_info active="true" anchor="right" id="SciView" order="3" visible="true" weight="0.0" />
-      <window_info anchor="right" id="R Graphics" order="4" />
+      <window_info active="true" anchor="right" id="SciView" order="3" visible="true" weight="0.3295302" />
+      <window_info anchor="right" id="R Graphics" order="4" weight="0.3295302" />
       <window_info anchor="right" id="R Packages" order="5" />
       <window_info anchor="right" id="Database" order="6" />
     </layout>
@@ -235,8 +238,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/LKHPyInterface/Visualize.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="239">
-          <caret line="41" lean-forward="true" selection-start-line="41" selection-end-line="41" />
+        <state relative-caret-position="225">
+          <caret line="47" lean-forward="true" selection-start-line="47" selection-end-line="47" />
           <folding>
             <element signature="e#0#31#0" expanded="true" />
           </folding>
