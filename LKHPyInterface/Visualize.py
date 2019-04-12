@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def visualize_tour(nodes, tour, out_path=None, connect_ends=True):
+def visualize_tour(nodes, tour, out_path=None, connect_ends=True, plot_points=False):
     """Save a picture of the tour for manual inspection.
 
     Arguments:
@@ -10,6 +10,7 @@ def visualize_tour(nodes, tour, out_path=None, connect_ends=True):
     :param tour: numpy array, representing order of the nodes, a permutation of the array [1, 2, ..., n]
     :param out_path: desired path to store the image
     :param connect_ends: boolean indicating whether to connect the last point in the tour to the first
+    :param plot_points: boolean to plot the nodes of the graph. Set to False especially on large graphs
     :return: None
     """
 
@@ -23,7 +24,8 @@ def visualize_tour(nodes, tour, out_path=None, connect_ends=True):
     scale_y = y / np.max(y)
     scale_y -= np.mean(scale_y)
 
-    plt.plot(scale_x, scale_y, 'ro')
+    if plot_points:
+        plt.plot(scale_x, scale_y, 'ro')
 
     for i in range(n - 1):
         curr_index = tour[i]
@@ -47,6 +49,6 @@ def visualize_tour(nodes, tour, out_path=None, connect_ends=True):
 
 
 if __name__ == '__main__':
-    a = np.matrix('1 32 23; 2 -12 42; 3 21 -12; 4 0 5; 5 0 10; 6 10 0')
-    t = np.array([1, 2, 6, 5, 4, 3])
+    a = np.matrix('1 10 10; 2 10 0; 3 10 -10; 4 0 10; 5 0 0; 6 0 -10; 7 -10 10; 8 -10 0; 9 -10 -10')
+    t = np.array([1, 2, 3, 6, 5, 9, 8, 7, 4])
     visualize_tour(a, t, out_path='check_tour.png', connect_ends=True)
