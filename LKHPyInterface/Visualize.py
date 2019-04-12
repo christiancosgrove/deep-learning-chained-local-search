@@ -15,8 +15,8 @@ def visualize_tour(nodes, tour, out_path=None, connect_ends=True, plot_points=Fa
     """
 
     n = nodes.shape[0]
-    x = np.asarray(nodes[:, 1])
-    y = np.asarray(nodes[:, 2])
+    x = np.asarray(nodes[:, 0])
+    y = np.asarray(nodes[:, 1])
 
     scale_x = x / np.max(x)
     scale_x -= np.mean(scale_x)

@@ -10,8 +10,8 @@ int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLi
     GainType Cost, OldOptimum;
     double Time, LastTime = GetTime();
 
-    printff("G: %d", TTESTGLOBAL);
-    TTESTGLOBAL = 10;
+    // printff("G: %d", TTESTGLOBAL);
+    // TTESTGLOBAL = 10;
 
     /* Read the specification of the problem */
     // if (argc >= 2)
