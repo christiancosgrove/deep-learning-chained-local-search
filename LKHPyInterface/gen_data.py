@@ -19,12 +19,10 @@ def gen_src_problems(num_problems, num_cities, dim=2):
 	return np.random.rand(num_problems, num_cities, dim)
 
 
+# Generates a toy problem where the points lie in a circle
 def gen_src_problems_circle(num_problems, num_cities, dim=2):
-
 	space = np.linspace(0, 2*np.pi, num_cities, endpoint=False)
-
 	arr = np.array([np.cos(space), np.sin(space)]).T
-	print(arr.shape)
 	return arr.reshape(1, num_cities, dim)
 
 
@@ -76,10 +74,6 @@ def run_lkh(converted_problems, num_workers):
 def tour_to_pointer(tour):
 	p = np.zeros_like(tour)
 	for i in range(len(tour)):
-		print(i)
-		print(len(tour))
-		print((i+1)%len(tour))
-		print(tour[i])
 		p[tour[i]] = tour[(i+1)%len(tour)]
 	return p
 
@@ -96,7 +90,6 @@ def pointer_to_tour(pointer):
 
 def double_bridge(tour, i, j, k, l):
 	tlen = len(tour)
-	print(tour)
 	pointer = tour_to_pointer(tour)
 	#double bridge 1
 	o1 = pointer[i]
@@ -112,7 +105,15 @@ def double_bridge(tour, i, j, k, l):
 
 # TODO : IMPLEMENT RANDOM KICKS
 def rand_kick(tour):
-	return tour, (0, 1, 2, 3)
+	ltour = len(tour)
+	if ltour < 4:
+		raise "Can't do a double bridge with less than 4 nodes!"
+	l = np.random.randint(ltour - 3)
+	i = np.random.randint(l + 1, ltour - 2)
+	k = np.random.randint(i + 1, ltour - 1)
+	j = np.random.randint(k + 1, ltour)
+
+	return double_bridge(tour, i, j, k, l), (i, j, k, l)
 
 # TODO: implement eval tour
 def tour_length(tour, node_coords):
@@ -144,14 +145,13 @@ def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
 
 # gen_data(10, 10)
 
-src_problems = gen_src_problems_circle(1, 10)
+src_problems = gen_src_problems_circle(1, 30)
 src_problems_converted = convert_euclideans_to_lkh(src_problems*LKH_SCALE)
 
-stuck_tours = run_lkh(convert_lkh_to_input(src_problems_converted, 10), 1)
+stuck_tours = run_lkh(convert_lkh_to_input(src_problems_converted, 30), 1)
 
 from Visualize import visualize_tour
-print(src_problems.shape)
 
-kicked = double_bridge(stuck_tours[0] - 1, 3, 7, 0, 5)
+kicked = rand_kick(stuck_tours[0] - 1)[0]
 
-visualize_tour(src_problems[0], kicked + 1, arrows=True)#kicked+1)
+visualize_tour(src_problems[0], kicked + 1, arrows=True)
