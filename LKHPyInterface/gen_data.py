@@ -19,6 +19,15 @@ def gen_src_problems(num_problems, num_cities, dim=2):
 	return np.random.rand(num_problems, num_cities, dim)
 
 
+def gen_src_problems_circle(num_problems, num_cities, dim=2):
+
+	space = np.linspace(0, 2*np.pi, num_cities, endpoint=False)
+
+	arr = np.array([np.cos(space), np.sin(space)]).T
+	print(arr.shape)
+	return arr.reshape(1, num_cities, dim)
+
+
 def convert_euclidean_to_lkh(problem):
 	pstring = ''
 
@@ -64,6 +73,43 @@ def run_lkh(converted_problems, num_workers):
 
 	return outs
 
+def tour_to_pointer(tour):
+	p = np.zeros_like(tour)
+	for i in range(len(tour)):
+		print(i)
+		print(len(tour))
+		print((i+1)%len(tour))
+		print(tour[i])
+		p[tour[i]] = tour[(i+1)%len(tour)]
+	return p
+
+def pointer_to_tour(pointer):
+	t = np.zeros_like(pointer)
+	n = 0
+	for i in range(len(pointer)):
+		t[i] = n
+		n = pointer[n]
+
+	if n != 0:
+		raise "NOT CONNECTED!"
+	return t
+
+def double_bridge(tour, i, j, k, l):
+	tlen = len(tour)
+	print(tour)
+	pointer = tour_to_pointer(tour)
+	#double bridge 1
+	o1 = pointer[i]
+	pointer[i] = pointer[j]
+	pointer[j] = o1
+
+	#double bridge 2
+	o2 = pointer[k]
+	pointer[k] = pointer[l]
+	pointer[l] = o2
+
+	return pointer_to_tour(pointer)
+
 # TODO : IMPLEMENT RANDOM KICKS
 def rand_kick(tour):
 	return tour, (0, 1, 2, 3)
@@ -98,11 +144,14 @@ def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
 
 # gen_data(10, 10)
 
-src_problems = gen_src_problems_clustered(1, 4000)
+src_problems = gen_src_problems_circle(1, 10)
 src_problems_converted = convert_euclideans_to_lkh(src_problems*LKH_SCALE)
 
-stuck_tours = run_lkh(convert_lkh_to_input(src_problems_converted, 4000), 1)
+stuck_tours = run_lkh(convert_lkh_to_input(src_problems_converted, 10), 1)
 
 from Visualize import visualize_tour
 print(src_problems.shape)
-visualize_tour(src_problems[0], stuck_tours[0])
+
+kicked = double_bridge(stuck_tours[0] - 1, 3, 7, 0, 5)
+
+visualize_tour(src_problems[0], kicked + 1, arrows=True)#kicked+1)
