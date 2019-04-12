@@ -108,11 +108,16 @@ def rand_kick(tour):
 	ltour = len(tour)
 	if ltour < 4:
 		raise "Can't do a double bridge with less than 4 nodes!"
-	l = np.random.randint(ltour - 3)
-	i = np.random.randint(l + 1, ltour - 2)
-	k = np.random.randint(i + 1, ltour - 1)
-	j = np.random.randint(k + 1, ltour)
+	l = np.random.randint(ltour)
+	k = np.random.randint(l + 1, l + ltour - 2)
+	i = np.random.randint(l+1, k)
+	j = np.random.randint(k + 1, l + ltour)
 
+	l %= ltour
+	k %= ltour
+	i %= ltour
+	j %= ltour
+	
 	return double_bridge(tour, i, j, k, l), (i, j, k, l)
 
 # TODO: implement eval tour
