@@ -1,3 +1,4 @@
+# %cd /Users/cameronfranz/Documents/Learning/Projects/DiscreteOptiDLClass/deep-learning-chained-local-search/LKHPyInterface
 import numpy as np
 import LKH
 from multiprocessing import Pool
@@ -63,11 +64,11 @@ def convert_lkh_to_input(problems, problem_size, initial_tours=None):
 
 	return [(p, params, initial_tours[i], use_initial) for i, p in enumerate(problems)]
 
-def run_lkh(converted_problems, num_workers):
+def run_lkh(converted_problems, num_workers, printDebug=False):
 	outs = []
 	for i in range(0, len(converted_problems), num_workers):
 		pool = Pool(num_workers)
-		outs += pool.starmap(LKH.run, converted_problems[i : i+num_workers])
+		outs += pool.starmap(LKH.run, [p + (int(printDebug),) for p in converted_problems[i : i+num_workers]])
 		pool.terminate()
 
 	return outs
@@ -171,6 +172,7 @@ from torch_geometric.data import Data
 from torch_geometric.data import DataLoader
 from scipy.spatial import Delaunay
 
+
 def make_geometric_data(points, edges, best_nodes):
 	n = points.shape[0]
 
@@ -217,7 +219,7 @@ src_problems_converted = convert_euclideans_to_lkh(src_problems*LKH_SCALE)
 
 stuck_tours = run_lkh(convert_lkh_to_input(src_problems_converted, 100), num_workers=1)
 
-kicked = rand_kick(stuck_tours[0] - 1)[0]
+# kicked = rand_kick(stuck_tours[0] - 1)[0]
 
 visualize_tour(src_problems[0], stuck_tours[0], arrows=False)
 
@@ -227,7 +229,3 @@ visualize_tour(src_problems[0], stuck_tours[0], arrows=False)
 # plt.triplot(points[:,0], points[:,1], tri.simplices.copy())
 
 # plt.show()
-
-
-
-

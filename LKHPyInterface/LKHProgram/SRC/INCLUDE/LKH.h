@@ -7,6 +7,7 @@
  */
 
 int TTESTGLOBAL;
+int PRINT_DEBUG;
 
 #undef NDEBUG
 #include <assert.h>
@@ -439,7 +440,7 @@ void NormalizeSegmentList(void);
 void OrderCandidateSet(int MaxCandidates,
                        GainType MaxAlpha, int Symmetric);
 GainType PatchCycles(int k, GainType Gain);
-void printff(char *fmt, ...);
+void printff(const char *fmt, ...);
 void PrintParameters(void);
 void PrintStatistics(void);
 unsigned Random(void);
