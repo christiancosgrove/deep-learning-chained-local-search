@@ -1,4 +1,4 @@
-# %cd /Users/cameronfranz/Documents/Learning/Projects/DiscreteOptiDLClass/LKHPyInterface
+# %cd /Users/cameronfranz/Documents/Learning/Projects/DiscreteOptiDLClass/deep-learning-chained-local-search/LKHPyInterface
 # !python setup.LKH.py build_ext --inplace
 import os
 from libc.stdlib cimport malloc, free
@@ -8,7 +8,7 @@ import numpy as np
 cimport numpy as np
 
 cdef extern from "LKHProgram/SRC/LKHmain.c":
-    int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLines, int numProblemLines, int* tour, int tourlen, int useInitialTour)
+    int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLines, int numProblemLines, int* tour, int tourlen, int useInitialTour, int printDebug)
 
 cdef char ** to_cstring_array(strings):
     cdef char **ret = <char **> malloc(len(strings) * sizeof(char *))
@@ -27,7 +27,7 @@ cdef char * to_cstring(string):
     strcpy(ret, stringCharArr)
     return ret
 
-cpdef run(problemString, params, np.ndarray[int, ndim=1, mode="c"] input, useInitialTour):
+cpdef run(problemString, params, np.ndarray[int, ndim=1, mode="c"] input, useInitialTour, printDebug=0):
     # cdef char * argv[2];
     # parameterFileArg = os.path.join(os.getcwd(), inputFilename).encode()
     # argv[1] = <bytes> parameterFileArg
@@ -39,7 +39,7 @@ cpdef run(problemString, params, np.ndarray[int, ndim=1, mode="c"] input, useIni
         parameterString += string + "\n"
 
     plines = len(problemString.split('\n'))
-    status = LKHmain(to_cstring(parameterString), len(parameterFileLines), to_cstring(problemString), plines, &input[0], input.shape[0], useInitialTour)
+    status = LKHmain(to_cstring(parameterString), len(parameterFileLines), to_cstring(problemString), plines, &input[0], input.shape[0], useInitialTour, printDebug)
     return input
 
 # # How to do it inline with IPython, not practical in this case

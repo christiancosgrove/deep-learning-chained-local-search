@@ -5,13 +5,14 @@
  * This file contains the main function of the program.
  */
 
-int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLines, int numProblemLines, int* tour, int tourlen, int useInitialTour)
+int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLines, int numProblemLines, int* tour, int tourlen, int useInitialTour, int printDebug)
 {
     GainType Cost, OldOptimum;
     double Time, LastTime = GetTime();
 
     // printff("G: %d", TTESTGLOBAL);
     // TTESTGLOBAL = 10;
+    PRINT_DEBUG = printDebug;
 
     /* Read the specification of the problem */
     // if (argc >= 2)

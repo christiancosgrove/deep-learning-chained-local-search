@@ -3,6 +3,7 @@ from distutils.extension import Extension
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 import os
+import numpy as np
 
 # If all in one script, download and untar and rename LKH dir here.
 
@@ -22,7 +23,7 @@ LKHsourceFiles = ["LKHProgram/SRC/" + f for f in allSourceFiles]
 
 sourcefiles = ["LKH.pyx", *LKHsourceFiles]
 include_dirs = ["LKHProgram/SRC/INCLUDE"]
-ext_modules = [Extension("LKH", sourcefiles, include_dirs=include_dirs)]
+ext_modules = [Extension("LKH", sourcefiles, include_dirs=[*include_dirs, np.get_include()])]
 
 setup(
   name = 'LKH',

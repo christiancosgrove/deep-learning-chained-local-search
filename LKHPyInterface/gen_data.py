@@ -1,3 +1,4 @@
+# %cd /Users/cameronfranz/Documents/Learning/Projects/DiscreteOptiDLClass/deep-learning-chained-local-search/LKHPyInterface
 import numpy as np
 import LKH
 from multiprocessing import Pool
@@ -53,7 +54,7 @@ def convert_lkh_to_input(problems, problem_size, initial_tours=None):
 		"RUNS":1,
 		"MOVE_TYPE" : 5,
 		"TRACE_LEVEL":0,
-		"MAX_TRIALS" : 20
+		# "MAX_TRIALS" : 20
 		# "CANDIDATE_SET_TYPE" : "DELAUNAY"
 	}
 	if initial_tours is None:
@@ -62,11 +63,11 @@ def convert_lkh_to_input(problems, problem_size, initial_tours=None):
 
 	return [(p, params, initial_tours[i], use_initial) for i, p in enumerate(problems)]
 
-def run_lkh(converted_problems, num_workers):
+def run_lkh(converted_problems, num_workers, printDebug=False):
 	outs = []
 	for i in range(0, len(converted_problems), num_workers):
 		pool = Pool(num_workers)
-		outs += pool.starmap(LKH.run, converted_problems[i : i+num_workers])
+		outs += pool.starmap(LKH.run, [p + (int(printDebug),) for p in converted_problems[i : i+num_workers]])
 		pool.terminate()
 
 	return outs
@@ -117,7 +118,7 @@ def rand_kick(tour):
 	k %= ltour
 	i %= ltour
 	j %= ltour
-	
+
 	return double_bridge(tour, i, j, k, l), (i, j, k, l)
 
 # TODO: implement eval tour
@@ -150,13 +151,13 @@ def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
 
 # gen_data(10, 10)
 
-src_problems = gen_src_problems_circle(1, 30)
+src_problems = gen_src_problems_clustered(1, 100)
 src_problems_converted = convert_euclideans_to_lkh(src_problems*LKH_SCALE)
-
-stuck_tours = run_lkh(convert_lkh_to_input(src_problems_converted, 30), 1)
+stuck_tours = run_lkh(convert_lkh_to_input(src_problems_converted, 100), 1, False)
 
 from Visualize import visualize_tour
 
-kicked = rand_kick(stuck_tours[0] - 1)[0]
+# kicked = rand_kick(stuck_tours[0] - 1)[0]
 
-visualize_tour(src_problems[0], kicked + 1, arrows=True)
+# visualize_tour(src_problems[0], kicked + 1, arrows=True)
+visualize_tour(src_problems[0], stuck_tours[0], arrows=False)
