@@ -2,6 +2,8 @@
 import numpy as np
 import LKH
 from multiprocessing import Pool
+from tqdm import tqdm
+from collections import OrderedDict
 
 
 def gen_src_problems_clustered(num_problems, num_cities, dim=2, num_clusters=5):
@@ -53,16 +55,16 @@ def convert_lkh_to_input(problems, problem_size, initial_tours=None):
     params = {
         "PROBLEM_FILE": "placeholder",
         "RUNS": 1,
-        "MOVE_TYPE": 5,
+        "MOVE_TYPE": 2,
         "TRACE_LEVEL": 0,
-        # "MAX_TRIALS" : 20
+        "MAX_TRIALS" : 2
         # "CANDIDATE_SET_TYPE" : "DELAUNAY"
     }
     if initial_tours is None:
         initial_tours = np.zeros((len(problems), problem_size), dtype=np.int32)
         use_initial = 0
 
-    return [(p, params, initial_tours[i], use_initial) for i, p in enumerate(problems)]
+    return [(p, params, initial_tours[i] + 1, use_initial) for i, p in enumerate(problems)]
 
 
 def run_lkh(converted_problems, num_workers, printDebug=False):
@@ -72,7 +74,7 @@ def run_lkh(converted_problems, num_workers, printDebug=False):
         outs += pool.starmap(LKH.run, [p + (int(printDebug),) for p in converted_problems[i: i + num_workers]])
         pool.terminate()
 
-    return outs
+    return [o - 1 for o in outs]
 
 
 def tour_to_pointer(tour):
@@ -80,8 +82,6 @@ def tour_to_pointer(tour):
     for i in range(len(tour)):
         p[tour[i]] = tour[(i + 1) % len(tour)]
 
-    print("TOUR ", tour)
-    print("POINTER ", p)
     return p
 
 
@@ -153,9 +153,11 @@ def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
     src_problems = gen_src_problems(num_problems, problem_size)
     src_problems_converted = convert_euclideans_to_lkh(src_problems * LKH_SCALE)
 
+    print('Generating stuck tours')
     stuck_tours = run_lkh(convert_lkh_to_input(src_problems_converted, problem_size), num_workers)
     best_nodes = []
-    for i, stuck in enumerate(stuck_tours):
+    print ('Running LKH on kicks')
+    for i, stuck in enumerate(tqdm(stuck_tours)):
         kicked_tours = []
         kicked_nodes = []
         for j in range(num_kicks):
@@ -167,7 +169,7 @@ def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
                         num_workers)
         scores = [tour_length(t, src_problems[i]) for t in tours]
         best = np.argmin(scores)
-        best_nodes.append(best)
+        best_nodes.append(kicked_nodes[best])
 
     return (src_problems, stuck_tours, best_nodes)
 
@@ -197,39 +199,58 @@ def make_geometric_data(points, edges, best_nodes):
     y = np.zeros(n)
     for i in best_nodes:
         y[i] = 1
-    # TODO : use edge features
-    return Data(x=torch.tensor(features), edge_index=torch.tensor(edges, dtype=torch.long),
-                y=torch.tensor(y, dtype=torch.float))
+
+    edges = np.array(edges).T
+
+    return Data(x=torch.tensor(features, dtype=torch.float), edge_index=torch.tensor(edges, dtype=torch.long),
+                edge_attr=torch.tensor(edge_features, dtype=torch.float), y=torch.tensor(y, dtype=torch.float))
 
 
 def tour_edges(tour):
+    print(tour)
     return [(tour[i], tour[(i + 1) % len(tour)]) for i in range(len(tour))]
-
 
 # TODO : implement other methods of "compressing" graph
 def make_data_delaunay(points, tour, best_nodes):
-    edges = set(tour_edges(tour))
+    edges = OrderedDict.fromkeys(tour_edges(tour))
     tri = Delaunay(points)
     for triangle in tri.simplices:
-        edges.add((triangle[0], triangle[1]))
-        edges.add((triangle[0], triangle[2]))
-        edges.add((triangle[1], triangle[2]))
+        edges[(triangle[0], triangle[1])] = None
+        edges[(triangle[0], triangle[2])] = None
+        edges[(triangle[1], triangle[2])] = None
 
-    return make_geometric_data(points, list(edges), best_nodes)
+    return make_geometric_data(points, list(edges.keys()), best_nodes)
 
 
-def make_dataset(num_problems, num_cities, num_kicks, test_size=0.1):
+class MyOwnDataset(Dataset):
+    def __init__(self, data_objects):
+        self.data_objects = data_objects
+        self.transform = None
+        self.num_classes = 2
+
+    def __len__(self):
+        return len(self.data_objects)
+
+
+    def get(self, idx):
+        return self.data_objects[idx]
+
+
+def make_dataset(num_problems, num_cities, num_kicks):
     points, tours, best_nodes = gen_data(num_problems, num_cities, num_kicks)
+    data = [make_data_delaunay(points[i], tours[i], best_nodes[i]) for i in range(num_problems)]
+    return MyOwnDataset(data)
 
 
-src_problems = gen_src_problems_clustered(1, 100)
-src_problems_converted = convert_euclideans_to_lkh(src_problems * LKH_SCALE)
 
-stuck_tours = run_lkh(convert_lkh_to_input(src_problems_converted, 100), num_workers=1)
+# src_problems = gen_src_problems_clustered(1, 100)
+# src_problems_converted = convert_euclideans_to_lkh(src_problems * LKH_SCALE)
 
-# kicked = rand_kick(stuck_tours[0] - 1)[0]
+# stuck_tours = run_lkh(convert_lkh_to_input(src_problems_converted, 100), num_workers=1)
 
-visualize_tour(src_problems[0], stuck_tours[0], arrows=False)
+# # kicked = rand_kick(stuck_tours[0] - 1)[0]
+
+# visualize_tour(src_problems[0], stuck_tours[0], arrows=False)
 
 # print(make_data_delaunay(points, np.arange(10), (1, 2, 3, 4)))
 
