@@ -50,16 +50,34 @@ def convert_euclideans_to_lkh(problems):
     return [convert_euclidean_to_lkh(problems[i]) for i in range(problems.shape[0])]
 
 
-def convert_lkh_to_input(problems, problem_size, initial_tours=None):
+def convert_lkh_to_input(problems, problem_size, initial_tours=None, constrain=True):
     use_initial = 1
-    params = {
-        "PROBLEM_FILE": "placeholder",
-        "RUNS": 1,
-        "MOVE_TYPE": 2,
-        "TRACE_LEVEL": 0,
-        "MAX_TRIALS" : 2
-        # "CANDIDATE_SET_TYPE" : "DELAUNAY"
-    }
+    if constrain:
+        params = {
+            "PROBLEM_FILE": "placeholder",
+            "RUNS": 1,
+            "MOVE_TYPE": 2,
+            "NONSEQUENTIAL_MOVE_TYPE": 4,
+            "SUBSEQUENT_PATCHING": "NO",
+            "TRACE_LEVEL": 0,
+            "MAX_TRIALS" : 5,
+            # "TIME_LIMIT" : 1,
+            # "MAX_CANDIDATES" : 100
+            # "CANDIDATE_SET_TYPE" : "DELAUNAY"
+        }
+    else:
+        params = {
+            "PROBLEM_FILE": "placeholder",
+            "RUNS": 1,
+            "MOVE_TYPE": 2,
+            "NONSEQUENTIAL_MOVE_TYPE": 4,
+            "SUBSEQUENT_PATCHING": "NO",
+            "TRACE_LEVEL": 0,
+            "MAX_TRIALS" : 2,
+            # "TIME_LIMIT" : 1,
+            # "MAX_CANDIDATES" : 100
+            # "CANDIDATE_SET_TYPE" : "DELAUNAY"
+        }
     if initial_tours is None:
         initial_tours = np.zeros((len(problems), problem_size), dtype=np.int32)
         use_initial = 0
@@ -143,7 +161,7 @@ def rand_kick(tour):
 
 # TODO: implement eval tour
 def tour_length(tour, node_coords):
-    return np.sum([np.linalg.norm(node_coords[(i + 1) % len(tour)] - node_coords[i]) for i in range(len(node_coords))])
+    return np.sum([np.linalg.norm(node_coords[tour[(i + 1) % len(tour)]] - node_coords[tour[i]]) for i in range(len(node_coords))])
 
 
 LKH_SCALE = 1000
@@ -154,22 +172,59 @@ def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
     src_problems_converted = convert_euclideans_to_lkh(src_problems * LKH_SCALE)
 
     print('Generating stuck tours')
-    stuck_tours = run_lkh(convert_lkh_to_input(src_problems_converted, problem_size), num_workers)
+    stuck_tours = run_lkh(convert_lkh_to_input(src_problems_converted, problem_size, constrain=False), num_workers)
+    
     best_nodes = []
     print ('Running LKH on kicks')
-    for i, stuck in enumerate(tqdm(stuck_tours)):
-        kicked_tours = []
-        kicked_nodes = []
-        for j in range(num_kicks):
-            tour, nodes = rand_kick(stuck)
-            kicked_tours.append(tour)
-            kicked_nodes.append(nodes)
 
-        tours = run_lkh(convert_lkh_to_input([src_problems_converted[i]] * num_kicks, problem_size, kicked_tours),
-                        num_workers)
-        scores = [tour_length(t, src_problems[i]) for t in tours]
-        best = np.argmin(scores)
-        best_nodes.append(kicked_nodes[best])
+    temperature = 0.7
+
+    for i, stuck in enumerate(tqdm(stuck_tours)):
+
+        bn = None
+        best_length = 1e100
+        worst_length = -1
+
+        if num_kicks % num_workers != 0:
+            raise RuntimeError("num_kicks must be a multiple of num_workers")
+
+        stuck_length = tour_length(stuck, src_problems[i])
+
+        for k in tqdm(range(num_kicks // num_workers)):
+            kicked_tours = []
+            kicked_nodes = []
+            for j in range(num_workers):
+                tour, nodes = None, None
+
+                num_rejected = 0
+                # add acceptance criterion
+                while tour is None or np.random.uniform() > np.max([0.01,np.exp(-(tour_length(tour, src_problems[i]) - stuck_length)/temperature)]):
+                    tour, nodes = rand_kick(stuck)
+                    num_rejected += 1
+                # print('num rejected ', num_rejected)
+
+                kicked_tours.append(tour)
+                kicked_nodes.append(nodes)
+
+            tours = run_lkh(convert_lkh_to_input([src_problems_converted[i]] * num_workers, problem_size, kicked_tours),
+                            num_workers)
+
+            scores = [tour_length(t, src_problems[i]) for t in tours]
+
+            best = np.argmin(scores)
+
+            if scores[best] < best_length:
+                bn = kicked_nodes[best]
+                best_length = scores[best]
+            if scores[best] > worst_length:
+                worst_length = scores[best]
+        print('Gap: ', (worst_length - best_length) / best_length, ' Worst length ', worst_length, '; best length ', best_length)
+
+        # if there is no appreciable gap, then just use a uniform distriubtion over nodes
+        if (worst_length - best_length)/best_length < 1e-6:
+            best_nodes.append((-1,-1,-1,-1))
+        else:
+            best_nodes.append(bn)
 
     return (src_problems, stuck_tours, best_nodes)
 
@@ -197,8 +252,11 @@ def make_geometric_data(points, edges, best_nodes):
         edge_features[i] = 1
 
     y = np.zeros(n)
-    for i in best_nodes:
-        y[i] = 1
+    if best_nodes[0] == -1:
+        y[i] = np.ones(n) / n
+    else:
+        for i in best_nodes:
+            y[i] = 1
 
     edges = np.array(edges).T
 
@@ -236,8 +294,8 @@ class MyOwnDataset(Dataset):
         return self.data_objects[idx]
 
 
-def make_dataset(num_problems, num_cities, num_kicks):
-    points, tours, best_nodes = gen_data(num_problems, num_cities, num_kicks)
+def make_dataset(num_problems, num_cities, num_kicks, num_workers=4):
+    points, tours, best_nodes = gen_data(num_problems, num_cities, num_kicks, num_workers)
     data = [make_data_delaunay(points[i], tours[i], best_nodes[i]) for i in range(num_problems)]
     return MyOwnDataset(data)
 

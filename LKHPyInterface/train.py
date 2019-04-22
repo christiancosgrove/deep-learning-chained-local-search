@@ -9,6 +9,7 @@ import gen_data
 from model import Net
 import argparse
 import numpy as np
+import pickle
 
 
 
@@ -17,11 +18,28 @@ parser.add_argument("--data", type=str, default='./data')
 parser.add_argument("--train_examples", type=int)
 parser.add_argument("--mb_size", type=int, default=1)
 parser.add_argument("epochs", type=int)
+parser.add_argument('--train_dataset')
+parser.add_argument('--save_train')
+parser.add_argument('--test_dataset')
+parser.add_argument('--save_test')
+
 args = parser.parse_args()
 
+if args.train_dataset is not None:
+	train_dataset = pickle.load(args.train_dataset)
+else:
+	train_dataset = gen_data.make_dataset(128, 100, 128, 8)
+	if args.save_train:
+		with open(args.save_train, 'wb') as outfile:
+			pickle.dump(train_dataset, outfile)
 
-train_dataset = gen_data.make_dataset(5, 10, 10)
-test_dataset = gen_data.make_dataset(10, 100, 10)
+if args.test_dataset is not None:
+	test_dataset = pickle.load(args.test_dataset)
+else:
+	test_dataset = gen_data.make_dataset(100, 100, 100, 5)
+	if args.save_test:
+		with open(args.save_test, 'wb') as outfile:
+			pickle.dump(test_dataset, outfile)
 
 train_loader = DataLoader(train_dataset, batch_size=args.mb_size, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=args.mb_size)
