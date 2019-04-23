@@ -1219,7 +1219,8 @@ static void Read_TOUR_SECTION(FILE ** File)
                 Na->V = 1;
             } else
                 Na = 0;
-            if (File == &InitialTourFile) {
+            // if (File == &InitialTourFile) {
+            if (1) {
                 if (!Na)
                     Last->InitialSuc = N;
                 else {
