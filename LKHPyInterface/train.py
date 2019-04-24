@@ -10,13 +10,14 @@ from model import Net
 import argparse
 import numpy as np
 import pickle
+from tqdm import tqdm
 
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--data", type=str, default='./data')
 parser.add_argument("--train_examples", type=int)
-parser.add_argument("--mb_size", type=int, default=4)
+parser.add_argument("--mb_size", type=int, default=32)
 parser.add_argument("epochs", type=int)
 parser.add_argument('--train_dataset')
 parser.add_argument('--save_train')
@@ -43,10 +44,10 @@ else:
         with open(args.save_test, 'wb') as outfile:
             pickle.dump(test_dataset, outfile)
 
-train_loader = DataLoader(train_dataset, batch_size=args.mb_size, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=args.mb_size, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=args.mb_size)
 
-device = torch.device('cpu')#'cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = Net().to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-2, weight_decay=0)
@@ -55,7 +56,9 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-2, weight_decay=0)
 def train(i):
     losses = []
     k = 0
-    for data in train_loader:
+    for data in tqdm(train_loader):
+        data = data.to(device)
+
         model.train()
         optimizer.zero_grad()
         out = model(data)
@@ -66,19 +69,22 @@ def train(i):
         losses.append(loss.cpu().detach().numpy())
         k += 1
         # if k % 100 == 0:
-        print('iloss ', loss)
-        break
+        # print('iloss ', loss)
+        if k == 50:
+            break
 
     return np.mean(losses)
 
 def test(loader):
     model.eval()
     accs = []
-    for data in loader:
+    k = 0
+    for data in tqdm(loader):
         out = nn.MSELoss()(model(data), data.y).item()
-        # acc = out.eq().sum().item() / data.y.size(0)
         accs.append(out)
-        break
+        k += 1
+        if k == 50:
+            break
 
     return np.mean(accs)
 

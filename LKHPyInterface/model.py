@@ -81,7 +81,7 @@ class Net(torch.nn.Module):
         self.channels = 16
         self.conv1 = MyLayer(3, 1, 8, 64)
 
-        self.convs = []
+        self.convs = nn.ModuleList()
 
         for i in range(4):
             self.convs.append(MyLayer(64 + 3 + 64, 1, 64, 64))
@@ -90,7 +90,7 @@ class Net(torch.nn.Module):
 
 
     def forward(self, data):
-        mb_size = 4
+        mb_size = 32
 
         out = self.conv1(data.x, data.edge_index, data.edge_attr, data.batch)
 
