@@ -56,11 +56,11 @@ def convert_lkh_to_input(problems, problem_size, initial_tours=None, constrain=T
         params = {
             "PROBLEM_FILE": "placeholder",
             "RUNS": 1,
-            "MOVE_TYPE": 2,
+            "MOVE_TYPE": 5,
             "NONSEQUENTIAL_MOVE_TYPE": 4,
             "SUBSEQUENT_PATCHING": "NO",
             "TRACE_LEVEL": 0,
-            "MAX_TRIALS" : 5,
+            "MAX_TRIALS" : 50,
             # "TIME_LIMIT" : 1,
             # "MAX_CANDIDATES" : 100
             # "CANDIDATE_SET_TYPE" : "DELAUNAY"
@@ -69,11 +69,11 @@ def convert_lkh_to_input(problems, problem_size, initial_tours=None, constrain=T
         params = {
             "PROBLEM_FILE": "placeholder",
             "RUNS": 1,
-            "MOVE_TYPE": 2,
+            "MOVE_TYPE": 5,
             "NONSEQUENTIAL_MOVE_TYPE": 4,
             "SUBSEQUENT_PATCHING": "NO",
             "TRACE_LEVEL": 0,
-            "MAX_TRIALS" : 2,
+            "MAX_TRIALS" : 20,
             # "TIME_LIMIT" : 1,
             # "MAX_CANDIDATES" : 100
             # "CANDIDATE_SET_TYPE" : "DELAUNAY"
@@ -85,12 +85,17 @@ def convert_lkh_to_input(problems, problem_size, initial_tours=None, constrain=T
     return [(p, params, initial_tours[i] + 1, use_initial) for i, p in enumerate(problems)]
 
 
-def run_lkh(converted_problems, num_workers, printDebug=False):
+def run_lkh(converted_problems, num_workers, printDebug=False, progress=False):
     outs = []
-    for i in range(0, len(converted_problems), num_workers):
+    r = range(0, len(converted_problems), num_workers)
+    if progress:
+        r = tqdm(r)
+    for i in r:
         pool = Pool(num_workers)
         outs += pool.starmap(LKH.run, [p + (int(printDebug),) for p in converted_problems[i: i + num_workers]])
-        pool.terminate()
+        pool.close()
+        # pool.terminate()
+        # pool.join()
 
     return [o - 1 for o in outs]
 
@@ -172,12 +177,12 @@ def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
     src_problems_converted = convert_euclideans_to_lkh(src_problems * LKH_SCALE)
 
     print('Generating stuck tours')
-    stuck_tours = run_lkh(convert_lkh_to_input(src_problems_converted, problem_size, constrain=False), num_workers)
+    stuck_tours = run_lkh(convert_lkh_to_input(src_problems_converted, problem_size, constrain=False), num_workers, False, True)
     
     best_nodes = []
     print ('Running LKH on kicks')
 
-    temperature = 0.7
+    temperature = 0.3
 
     for i, stuck in enumerate(tqdm(stuck_tours)):
 
@@ -198,7 +203,7 @@ def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
 
                 num_rejected = 0
                 # add acceptance criterion
-                while tour is None or np.random.uniform() > np.max([0.01,np.exp(-(tour_length(tour, src_problems[i]) - stuck_length)/temperature)]):
+                while tour is None or np.random.uniform() > np.max([0.2,np.exp(-(tour_length(tour, src_problems[i]) - stuck_length)/temperature)]):
                     tour, nodes = rand_kick(stuck)
                     num_rejected += 1
                 # print('num rejected ', num_rejected)
@@ -218,7 +223,7 @@ def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
                 best_length = scores[best]
             if scores[best] > worst_length:
                 worst_length = scores[best]
-        print('Gap: ', (worst_length - best_length) / best_length, ' Worst length ', worst_length, '; best length ', best_length)
+        print('u   Gap: ', (worst_length - best_length) / best_length, ' Worst length ', worst_length, '; best length ', best_length)
 
         # if there is no appreciable gap, then just use a uniform distriubtion over nodes
         if (worst_length - best_length)/best_length < 1e-6:
@@ -248,12 +253,16 @@ def make_geometric_data(points, edges, best_nodes):
 
     # TODO : store length of edge
     edge_features = np.zeros((len(edges), 1))
+    # edge_features = np.zeros((len(edges), 2))
     for i in range(len(points) + 1):
         edge_features[i] = 1
 
+    # # for i in range(edge_features.shape[0]):
+    #     edge_features[i] = np.linalg.norm(points[edges[i][0]] - points[edges[i][1]])
+
     y = np.zeros(n)
     if best_nodes[0] == -1:
-        y[i] = np.ones(n) / n
+        y = np.ones(n) / n
     else:
         for i in best_nodes:
             y[i] = 1

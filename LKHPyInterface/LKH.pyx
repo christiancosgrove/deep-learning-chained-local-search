@@ -40,6 +40,8 @@ cpdef run(problemString, params, np.ndarray[int, ndim=1, mode="c"] input, useIni
 
     plines = len(problemString.split('\n'))
     status = LKHmain(to_cstring(parameterString), len(parameterFileLines), to_cstring(problemString), plines, &input[0], input.shape[0], useInitialTour, printDebug)
+    if status != 11:
+        raise RuntimeError("LKH failed!")
     return input
 
 # # How to do it inline with IPython, not practical in this case

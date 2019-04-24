@@ -121,7 +121,7 @@ class Net(torch.nn.Module):
 
 model = Net().to(device)
 
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-3)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-1, weight_decay=1e-3)
 
 
 def train(i):

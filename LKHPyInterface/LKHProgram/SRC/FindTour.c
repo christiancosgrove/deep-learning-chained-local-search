@@ -86,8 +86,8 @@ GainType FindTour()
             }
             BetterCost = Cost;
             RecordBetterTour();
-            if (Dimension == DimensionSaved && BetterCost < BestCost)
-                WriteTour(OutputTourFileName, BetterTour, BetterCost);
+            // if (Dimension == DimensionSaved && BetterCost < BestCost)
+            //     WriteTour(OutputTourFileName, BetterTour, BetterCost);
             if (StopAtOptimum && BetterCost == Optimum)
                 break;
             AdjustCandidateSet();

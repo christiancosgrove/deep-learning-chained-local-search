@@ -76,7 +76,7 @@ void CreateCandidateSet()
             ReadEdges(MaxCandidates);
         Cost = Ascent();
         if (Subgradient && SubproblemSize == 0) {
-            WritePenalties();
+            // WritePenalties();
             printff("wrote penalties");
             PiFile = 0;
         }
@@ -163,8 +163,8 @@ void CreateCandidateSet()
             }
         }
         while ((Na = Na->Suc) != FirstNode);
-        if (!CandidatesRead && SubproblemSize == 0)
-            WriteCandidates();
+        // if (!CandidatesRead && SubproblemSize == 0)
+            // WriteCandidates();
     }
     if (C == C_EXPLICIT) {
         Na = FirstNode;

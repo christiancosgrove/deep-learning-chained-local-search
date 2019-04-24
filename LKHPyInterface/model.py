@@ -12,8 +12,8 @@ class MyLayer(torch.nn.Module):
         super(MyLayer, self).__init__()
 
         # self.edge_mlp = Seq(Lin(..., ...), ReLU(), Lin(..., ...))
-        self.node_mlp_1 = Seq(Lin(in_channels + edge_attrs, mid_channels), ReLU(), Lin(mid_channels, mid_channels))
-        self.node_mlp_2 = Seq(Lin(mid_channels, mid_channels), ReLU(), Lin(mid_channels, out_channels))
+        # self.node_mlp_1 = Seq(Lin(in_channels + edge_attrs, mid_channels), ReLU(), nn.BatchNorm1d(mid_channels), Lin(mid_channels, mid_channels))
+        self.node_mlp_2 = Seq(Lin(in_channels*2, mid_channels), ReLU(), nn.BatchNorm1d(mid_channels), Lin(mid_channels, out_channels))
         # self.global_mlp = Seq(Lin(..., ...), ReLU(), Lin(..., ...))
 
         def edge_model(src, dest, edge_attr, u, batch):
@@ -32,10 +32,30 @@ class MyLayer(torch.nn.Module):
             # batch: [N] with max entry B - 1.
             row, col = edge_index
 
-            out = torch.cat([x[col], edge_attr], dim=1)
-            out = self.node_mlp_1(out)
+            # print('x ', x.size())
+            # print('edge ', edge_attr.size())
+            e = edge_attr.expand(edge_attr.size(0), x.size(1))
+
+
+            # ones = torch.ones(e.size())
+            # mask = torch.cat([ones, e], dim=1)
+
+            # print('e ', e.size())
+            # print('mask ', mask.size())
+            # print('out ', out.size())
+            # print('x[col] ', x[col].size())
+
+
+            # out = torch.cat([x[col], edge_attr], dim=1)
+            out = torch.cat([x[col], x[col] * e], dim=1)
+            # print('oshape ', out.size())
+            # out = self.node_mlp_1(out)
             out = scatter_mean(out, row, dim=0, dim_size=x.size(0))
+            # print('oshape ', out.size())
+
             # out = torch.cat([out, u[batch]], dim=1)
+            # print('out ', out.size())
+
             return self.node_mlp_2(out)
 
         # def global_model(x, edge_index, edge_attr, u, batch):
@@ -59,12 +79,31 @@ class Net(torch.nn.Module):
 
         # self.nn = nn.Sequential(nn.Linear(1, 2), nn.ReLU())
         self.channels = 16
-        self.conv1 = MyLayer(2, 1, 16, 16)
-        self.conv2 = MyLayer(16, 1, 16, 16)
-        self.conv3 = MyLayer(16, 1, 8, 1)
+        self.conv1 = MyLayer(2, 1, 8, 64)
+
+        self.convs = []
+
+        for i in range(4):
+            self.convs.append(MyLayer(64 + 2 + 64, 1, 64, 64))
+
+        self.conv_last = MyLayer(64, 1, 16, 1)
+
 
     def forward(self, data):
+
         out = self.conv1(data.x, data.edge_index, data.edge_attr, data.batch)
-        out = self.conv2(out, data.edge_index, data.edge_attr, data.batch)
-        out = self.conv3(out, data.edge_index, data.edge_attr, data.batch)
-        return torch.squeeze(out)
+
+        for l in self.convs:
+            # print(out.size())
+            glob = torch.mean(out.reshape(32, -1, 64), dim=1).unsqueeze(1).expand(32, 500, 64).reshape(-1, 64)
+            # print(glob.size())
+            # print(data.batch)
+            # print(data.x.size())
+            # print(out.size())
+            # print(glob.size())
+            out = torch.cat([data.x, out, glob], dim=1)
+            # print(out.size())
+            out = l(out, data.edge_index, data.edge_attr, data.batch)
+        
+        out = self.conv_last(out, data.edge_index, data.edge_attr, data.batch)
+        return nn.LogSoftmax()(torch.squeeze(out))

@@ -74,8 +74,8 @@ int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLi
         for (int i = 0; i < tourlen; i++) {
             tour[i] = BestTour[i];
         }
-        WriteTour(OutputTourFileName, BestTour, BestCost);
-        WriteTour(TourFileName, BestTour, BestCost);
+        // WriteTour(OutputTourFileName, BestTour, BestCost);
+        // WriteTour(TourFileName, BestTour, BestCost);
         Runs = 0;
     }
 
@@ -120,7 +120,7 @@ int LKHmain(char *parameterFileLines, int numParameterLines, char *problemFileLi
                 tour[i] = BestTour[i];
             }
             // WriteTour(OutputTourFileName, BestTour, BestCost);
-            WriteTour(stdout, BestTour, BestCost);
+            // WriteTour(stdout, BestTour, BestCost);
             // WriteTour(TourFileName, BestTour, BestCost);
         }
         OldOptimum = Optimum;
