@@ -79,23 +79,24 @@ class Net(torch.nn.Module):
 
         # self.nn = nn.Sequential(nn.Linear(1, 2), nn.ReLU())
         self.channels = 16
-        self.conv1 = MyLayer(2, 1, 8, 64)
+        self.conv1 = MyLayer(3, 1, 8, 64)
 
         self.convs = []
 
         for i in range(4):
-            self.convs.append(MyLayer(64 + 2 + 64, 1, 64, 64))
+            self.convs.append(MyLayer(64 + 3 + 64, 1, 64, 64))
 
         self.conv_last = MyLayer(64, 1, 16, 1)
 
 
     def forward(self, data):
+        mb_size = 4
 
         out = self.conv1(data.x, data.edge_index, data.edge_attr, data.batch)
 
         for l in self.convs:
             # print(out.size())
-            glob = torch.mean(out.reshape(32, -1, 64), dim=1).unsqueeze(1).expand(32, 500, 64).reshape(-1, 64)
+            glob = torch.mean(out.reshape(mb_size, -1, 64), dim=1).unsqueeze(1).expand(mb_size, 500, 64).reshape(-1, 64)
             # print(glob.size())
             # print(data.batch)
             # print(data.x.size())
@@ -106,4 +107,7 @@ class Net(torch.nn.Module):
             out = l(out, data.edge_index, data.edge_attr, data.batch)
         
         out = self.conv_last(out, data.edge_index, data.edge_attr, data.batch)
-        return nn.LogSoftmax()(torch.squeeze(out))
+        # print('osize ', out.size())
+        out = torch.mean(out.reshape(mb_size, -1), dim=1)
+
+        return torch.squeeze(out)

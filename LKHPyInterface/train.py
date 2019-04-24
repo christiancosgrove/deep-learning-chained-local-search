@@ -16,7 +16,7 @@ import pickle
 parser = argparse.ArgumentParser()
 parser.add_argument("--data", type=str, default='./data')
 parser.add_argument("--train_examples", type=int)
-parser.add_argument("--mb_size", type=int, default=32)
+parser.add_argument("--mb_size", type=int, default=4)
 parser.add_argument("epochs", type=int)
 parser.add_argument('--train_dataset')
 parser.add_argument('--save_train')
@@ -29,7 +29,7 @@ if args.train_dataset is not None:
     with open(args.train_dataset, 'rb') as f:
         train_dataset = pickle.load(f)
 else:
-    train_dataset = gen_data.make_dataset(2048, 500, 100, 4)
+    train_dataset = gen_data.make_dataset(256, 500, 100, 4)
     if args.save_train:
         with open(args.save_train, 'wb') as outfile:
             pickle.dump(train_dataset, outfile)
@@ -38,7 +38,7 @@ if args.test_dataset is not None:
     with open(args.test_dataset, 'rb') as f:
         test_dataset = pickle.load(f)
 else:
-    test_dataset = gen_data.make_dataset(256, 50, 100, 4)
+    test_dataset = gen_data.make_dataset(128, 500, 100, 4)
     if args.save_test:
         with open(args.save_test, 'wb') as outfile:
             pickle.dump(test_dataset, outfile)
@@ -59,7 +59,7 @@ def train(i):
         model.train()
         optimizer.zero_grad()
         out = model(data)
-        loss = nn.BCEWithLogitsLoss()(out, data.y)
+        loss = nn.MSELoss()(out, data.y)
         loss.backward()
         optimizer.step()
 
@@ -75,7 +75,7 @@ def test(loader):
     model.eval()
     accs = []
     for data in loader:
-        out = (torch.exp(model(data)) * data.y).sum().item()
+        out = nn.MSELoss()(model(data), data.y).item()
         # acc = out.eq().sum().item() / data.y.size(0)
         accs.append(out)
         break
@@ -85,6 +85,6 @@ def test(loader):
 
 for i in range(args.epochs):
     l = train(i)
-    print('loss: ', l, ' Train accuracy: ', test(train_loader))#,'; test accuracy: ', test(test_loader))
+    print('loss: ', l, ' Train accuracy: ', test(train_loader),'; test accuracy: ', test(test_loader))
 
 print(args.train_examples, test(train_loader), test(test_loader))

@@ -184,7 +184,13 @@ def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
 
     temperature = 0.3
 
+    ktours = []
+
     for i, stuck in enumerate(tqdm(stuck_tours)):
+
+        kicks = []
+        score_dist = []
+        selected_nodes = []
 
         bn = None
         best_length = 1e100
@@ -194,6 +200,8 @@ def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
             raise RuntimeError("num_kicks must be a multiple of num_workers")
 
         stuck_length = tour_length(stuck, src_problems[i])
+
+
 
         for k in tqdm(range(num_kicks // num_workers)):
             kicked_tours = []
@@ -211,27 +219,23 @@ def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
                 kicked_tours.append(tour)
                 kicked_nodes.append(nodes)
 
+
             tours = run_lkh(convert_lkh_to_input([src_problems_converted[i]] * num_workers, problem_size, kicked_tours),
                             num_workers)
 
             scores = [tour_length(t, src_problems[i]) for t in tours]
+            score_dist += scores
 
-            best = np.argmin(scores)
+            kicks += kicked_tours
+            selected_nodes += kicked_nodes
 
-            if scores[best] < best_length:
-                bn = kicked_nodes[best]
-                best_length = scores[best]
-            if scores[best] > worst_length:
-                worst_length = scores[best]
-        print('u   Gap: ', (worst_length - best_length) / best_length, ' Worst length ', worst_length, '; best length ', best_length)
+        mean = np.mean(score_dist)
+        std = np.std(score_dist) + 0.01
+        zs = [(s - mean)/std for s in score_dist]
+        ktours.append((kicks, selected_nodes, zs))
 
-        # if there is no appreciable gap, then just use a uniform distriubtion over nodes
-        if (worst_length - best_length)/best_length < 1e-6:
-            best_nodes.append((-1,-1,-1,-1))
-        else:
-            best_nodes.append(bn)
 
-    return (src_problems, stuck_tours, best_nodes)
+    return (src_problems, ktours)
 
 
 import torch
@@ -243,13 +247,15 @@ from torch_geometric.data import DataLoader
 from scipy.spatial import Delaunay
 
 
-def make_geometric_data(points, edges, best_nodes):
+def make_geometric_data(points, edges, best_nodes, zscore):
     n = points.shape[0]
 
     # Assume that the first n edges correspond to tour
-    features = np.zeros((n, 2))
+    features = np.zeros((n, 3))
     # features[:n, 0] = 1
-    features[:, 0:] = points
+    features[:, :2] = points
+    for j in best_nodes:
+        features[j, 2] = 1
 
     # TODO : store length of edge
     edge_features = np.zeros((len(edges), 1))
@@ -260,25 +266,24 @@ def make_geometric_data(points, edges, best_nodes):
     # # for i in range(edge_features.shape[0]):
     #     edge_features[i] = np.linalg.norm(points[edges[i][0]] - points[edges[i][1]])
 
-    y = np.zeros(n)
-    if best_nodes[0] == -1:
-        y = np.ones(n) / n
-    else:
-        for i in best_nodes:
-            y[i] = 1
+    # y = np.zeros(n)
+    # if best_nodes[0] == -1:
+    #     y = np.ones(n) / n
+    # else:
+    #     for i in best_nodes:
+    #         y[i] = 1
 
     edges = np.array(edges).T
 
     return Data(x=torch.tensor(features, dtype=torch.float), edge_index=torch.tensor(edges, dtype=torch.long),
-                edge_attr=torch.tensor(edge_features, dtype=torch.float), y=torch.tensor(y, dtype=torch.float))
+                edge_attr=torch.tensor(edge_features, dtype=torch.float), y=torch.tensor([zscore], dtype=torch.float))
 
 
 def tour_edges(tour):
-    print(tour)
     return [(tour[i], tour[(i + 1) % len(tour)]) for i in range(len(tour))]
 
 # TODO : implement other methods of "compressing" graph
-def make_data_delaunay(points, tour, best_nodes):
+def make_data_delaunay(points, tour, best_nodes, zscore):
     edges = OrderedDict.fromkeys(tour_edges(tour))
     tri = Delaunay(points)
     for triangle in tri.simplices:
@@ -286,7 +291,7 @@ def make_data_delaunay(points, tour, best_nodes):
         edges[(triangle[0], triangle[2])] = None
         edges[(triangle[1], triangle[2])] = None
 
-    return make_geometric_data(points, list(edges.keys()), best_nodes)
+    return make_geometric_data(points, list(edges.keys()), best_nodes, zscore)
 
 
 class MyOwnDataset(Dataset):
@@ -304,8 +309,14 @@ class MyOwnDataset(Dataset):
 
 
 def make_dataset(num_problems, num_cities, num_kicks, num_workers=4):
-    points, tours, best_nodes = gen_data(num_problems, num_cities, num_kicks, num_workers)
-    data = [make_data_delaunay(points[i], tours[i], best_nodes[i]) for i in range(num_problems)]
+    points, kick_info = gen_data(num_problems, num_cities, num_kicks, num_workers)
+
+    data = []
+    for i in range(num_problems):
+
+        for j in range(num_kicks):
+            data.append(make_data_delaunay(points[i], kick_info[i][0][j], kick_info[i][1][j], kick_info[i][2][j]))
+
     return MyOwnDataset(data)
 
 
