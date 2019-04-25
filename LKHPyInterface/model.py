@@ -90,7 +90,7 @@ class Net(torch.nn.Module):
 
 
     def forward(self, data):
-        mb_size = 32
+        mb_size = 2
 
         out = self.conv1(data.x, data.edge_index, data.edge_attr, data.batch)
 
@@ -98,7 +98,7 @@ class Net(torch.nn.Module):
             # print(out.size())
             glob = torch.mean(out.reshape(mb_size, -1, 64), dim=1).unsqueeze(1).expand(mb_size, 500, 64).reshape(-1, 64)
             # print(glob.size())
-            # print(data.batch)
+            # print(data.batch.size())
             # print(data.x.size())
             # print(out.size())
             # print(glob.size())

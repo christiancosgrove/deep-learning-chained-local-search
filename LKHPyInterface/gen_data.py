@@ -260,7 +260,7 @@ def make_geometric_data(points, edges, best_nodes, zscore):
     # TODO : store length of edge
     edge_features = np.zeros((len(edges), 1))
     # edge_features = np.zeros((len(edges), 2))
-    for i in range(len(points) + 1):
+    for i in range(len(points)):
         edge_features[i] = 1
 
     # # for i in range(edge_features.shape[0]):
