@@ -5,6 +5,9 @@ from multiprocessing import Pool
 from tqdm import tqdm
 from collections import OrderedDict
 
+import pickle 
+import os
+
 
 def gen_src_problems_clustered(num_problems, num_cities, dim=2, num_clusters=5):
     probs = []
@@ -56,24 +59,30 @@ def convert_lkh_to_input(problems, problem_size, initial_tours=None, constrain=T
         params = {
             "PROBLEM_FILE": "placeholder",
             "RUNS": 1,
-            "MOVE_TYPE": 5,
-            "NONSEQUENTIAL_MOVE_TYPE": 4,
-            "SUBSEQUENT_PATCHING": "NO",
+            "MOVE_TYPE": 2,
+            # "NONSEQUENTIAL_MOVE_TYPE": 4,
+            # "SUBSEQUENT_PATCHING": "NO",
+            "PATCHING_A": 0,
+            "PATCHING_C": 0,
             "TRACE_LEVEL": 0,
-            "MAX_TRIALS" : 50,
+            "SUBGRADIENT" : "NO",
+            "MAX_TRIALS" : 2,
             # "TIME_LIMIT" : 1,
-            # "MAX_CANDIDATES" : 100
+            # "MAX_CANDIDATES" : 1
             # "CANDIDATE_SET_TYPE" : "DELAUNAY"
         }
     else:
         params = {
             "PROBLEM_FILE": "placeholder",
             "RUNS": 1,
-            "MOVE_TYPE": 5,
-            "NONSEQUENTIAL_MOVE_TYPE": 4,
-            "SUBSEQUENT_PATCHING": "NO",
+            "MOVE_TYPE": 2,
+            # "NONSEQUENTIAL_MOVE_TYPE": 4,
+            # "SUBSEQUENT_PATCHING": "NO",
+            "PATCHING_A": 0,
+            "PATCHING_C": 0,
             "TRACE_LEVEL": 0,
-            "MAX_TRIALS" : 20,
+            "SUBGRADIENT" : "NO",
+            "MAX_TRIALS" : 2,
             # "TIME_LIMIT" : 1,
             # "MAX_CANDIDATES" : 100
             # "CANDIDATE_SET_TYPE" : "DELAUNAY"
@@ -93,8 +102,8 @@ def run_lkh(converted_problems, num_workers, printDebug=False, progress=False):
     for i in r:
         pool = Pool(num_workers)
         outs += pool.starmap(LKH.run, [p + (int(printDebug),) for p in converted_problems[i: i + num_workers]])
-        pool.close()
-        # pool.terminate()
+        # pool.close()
+        pool.terminate()
         # pool.join()
 
     return [o - 1 for o in outs]
@@ -169,11 +178,11 @@ def tour_length(tour, node_coords):
     return np.sum([np.linalg.norm(node_coords[tour[(i + 1) % len(tour)]] - node_coords[tour[i]]) for i in range(len(node_coords))])
 
 
-LKH_SCALE = 1000
+LKH_SCALE = 10000
 
 
 def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
-    src_problems = gen_src_problems(num_problems, problem_size)
+    src_problems = gen_src_problems_clustered(num_problems, problem_size)
     src_problems_converted = convert_euclideans_to_lkh(src_problems * LKH_SCALE)
 
     print('Generating stuck tours')
@@ -182,7 +191,7 @@ def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
     best_nodes = []
     print ('Running LKH on kicks')
 
-    temperature = 0.3
+    temperature = 100
 
     ktours = []
 
@@ -211,7 +220,7 @@ def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
 
                 num_rejected = 0
                 # add acceptance criterion
-                while tour is None or np.random.uniform() > np.max([0.2,np.exp(-(tour_length(tour, src_problems[i]) - stuck_length)/temperature)]):
+                while tour is None or np.random.uniform() > np.max([0.1,np.exp(-(tour_length(tour, src_problems[i]) - stuck_length)/temperature)]):
                     tour, nodes = rand_kick(stuck)
                     num_rejected += 1
                 # print('num rejected ', num_rejected)
@@ -232,7 +241,17 @@ def gen_data(num_problems, problem_size, num_kicks=10, num_workers=4):
         mean = np.mean(score_dist)
         std = np.std(score_dist) + 0.01
         zs = [(s - mean)/std for s in score_dist]
-        ktours.append((kicks, selected_nodes, zs))
+
+        # zs = np.random.normal(size=len(score_dist))
+        # rands = np.random.normal(size=len(score_dist))
+        # zs = rands
+        # min = np.min(score_dist)
+        # zs = [(s - min) for s in score_dist]
+        ktours.append((kicks, selected_nodes, np.array(score_dist) - stuck_length))
+
+        # import matplotlib.pyplot as plt
+        # plt.hist(np.array(score_dist) - stuck_length, bins=50)
+        # plt.show()
 
 
     return (src_problems, ktours)
@@ -250,21 +269,38 @@ from scipy.spatial import Delaunay
 def make_geometric_data(points, edges, best_nodes, zscore):
     n = points.shape[0]
 
+    # get kick edge indices
+    inds = []
+    length = points.shape[0]
+    for i in range(len(edges)):
+        for e in [
+            (best_nodes[0], (best_nodes[1] + 1)%length),
+            ((best_nodes[0] + 1)%length, best_nodes[1]),
+            (best_nodes[2], (best_nodes[3] + 1)%length),
+            ((best_nodes[2] + 1)%length, best_nodes[3])]:
+            if edges[i] == e:
+                inds.append(i)
+
+
     # Assume that the first n edges correspond to tour
-    features = np.zeros((n, 3))
+    features = np.zeros((n, 2))
     # features[:n, 0] = 1
     features[:, :2] = points
-    for j in best_nodes:
-        features[j, 2] = 1
 
     # TODO : store length of edge
-    edge_features = np.zeros((len(edges), 1))
+    edge_features = np.zeros((len(edges), 4))
     # edge_features = np.zeros((len(edges), 2))
     for i in range(len(points)):
-        edge_features[i] = 1
+        edge_features[i, 0] = 1
 
-    # # for i in range(edge_features.shape[0]):
-    #     edge_features[i] = np.linalg.norm(points[edges[i][0]] - points[edges[i][1]])
+    for j in best_nodes:
+        edge_features[j, 1] = 1
+
+    for i in range(edge_features.shape[0]):
+        edge_features[i, 2] = np.linalg.norm(points[edges[i][0]] - points[edges[i][1]])
+
+    for j in inds:
+        edge_features[j, 3] = 1
 
     # y = np.zeros(n)
     # if best_nodes[0] == -1:
@@ -291,33 +327,93 @@ def make_data_delaunay(points, tour, best_nodes, zscore):
         edges[(triangle[0], triangle[2])] = None
         edges[(triangle[1], triangle[2])] = None
 
+    length = points.shape[0]
+
+    edges[(best_nodes[0], (best_nodes[1] + 1)%length)] = None
+    edges[((best_nodes[0] + 1)%length, best_nodes[1])] = None
+    edges[(best_nodes[2], (best_nodes[3] + 1)%length)] = None
+    edges[((best_nodes[2] + 1)%length, best_nodes[3])] = None
+
+    return make_geometric_data(points, list(edges.keys()), best_nodes, zscore)
+
+
+def make_data_nearest(points, tour, best_nodes, zscore, k=5):
+    edges = OrderedDict.fromkeys(tour_edges(tour))
+    degrees = []
+    for i in range(points.shape[0]):
+        s = np.argsort(np.linalg.norm(points[i] - points, axis=1))
+        d = 0
+        for j in range(k):
+            edges[(i, s[j+1])] = None
+            d += 1
+        for j in range(k + 1, len(s)):
+            if np.random.uniform() < k / (len(s) - k+1):
+                edges[(i, s[j])] = None
+                d += 1
+
+        degrees.append(d)
+
+    print('average degree ', np.mean(degrees))
+
     return make_geometric_data(points, list(edges.keys()), best_nodes, zscore)
 
 
 class MyOwnDataset(Dataset):
-    def __init__(self, data_objects):
-        self.data_objects = data_objects
+    def __init__(self, path, chunk_size):
+
+        self.path = path
+        self.chunk_size = chunk_size
         self.transform = None
-        self.num_classes = 2
+
+        self.len = len(os.listdir(path)) * chunk_size
+        self.curr_chunk_idx = -1
+
+        self.data_objects = []
+        for i in range(len(os.listdir(path))):
+            with open(os.path.join(self.path, '{}.pkl'.format(i)), 'rb') as infile:
+                self.data_objects += (pickle.load(infile))
+
 
     def __len__(self):
-        return len(self.data_objects)
+        return self.len
 
+    def get_chunk(self, idx):
+        if self.curr_chunk_idx == -1 or self.curr_chunk_idx != idx // self.chunk_size:
+            self.curr_chunk_idx = idx // self.chunk_size
+            with open(os.path.join(self.path, '{}.pkl'.format(idx // self.chunk_size)), 'rb') as infile:
+                self.curr_chunk = pickle.load(infile)
+        return self.curr_chunk
 
     def get(self, idx):
+        # chunk = self.get_chunk(idx)
+        # return chunk[idx % self.chunk_size]
         return self.data_objects[idx]
 
 
-def make_dataset(num_problems, num_cities, num_kicks, num_workers=4):
+def make_dataset_chunk(num_problems, num_cities, num_kicks, num_workers=4):
     points, kick_info = gen_data(num_problems, num_cities, num_kicks, num_workers)
 
     data = []
     for i in range(num_problems):
-
         for j in range(num_kicks):
             data.append(make_data_delaunay(points[i], kick_info[i][0][j], kick_info[i][1][j], kick_info[i][2][j]))
 
-    return MyOwnDataset(data)
+    return data
+
+def make_dataset(path, num_problems, num_cities, num_kicks, chunk_size, num_workers=4):
+
+    os.makedirs(path, exist_ok=True)
+
+    if num_problems*num_kicks % chunk_size != 0:
+        raise RuntimeError("num_problems*num_kicks must be a multiple of chunk_size")
+    if chunk_size % num_kicks != 0:
+        raise RuntimeError("chunk_size must be a multiple of num_kicks")
+
+    print('Generating dataset chunks ')
+    for i in tqdm(range(num_problems*num_kicks // chunk_size)):
+        with open(os.path.join(path, '{}.pkl'.format(i)), 'wb') as outfile:
+            pickle.dump(make_dataset_chunk(chunk_size // num_kicks, num_cities, num_kicks, num_workers), outfile)
+
 
 
 
