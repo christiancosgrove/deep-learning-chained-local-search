@@ -25,6 +25,8 @@ parser.add_argument('train_dataset')
 # parser.add_argument('--save_train')
 parser.add_argument('test_dataset')
 parser.add_argument('--overwrite', action='store_true')
+parser.add_argument('--save_model')
+parser.add_argument('--save_results')
 # parser.add_argument('--save_test')
 
 args = parser.parse_args()
@@ -32,11 +34,11 @@ args = parser.parse_args()
 chunk_size = 1024
 
 if not os.path.exists(args.train_dataset) or args.overwrite:
-    gen_data.make_dataset(args.train_dataset, 256*4, 150, 4, chunk_size, num_workers=4)
+    gen_data.make_dataset(args.train_dataset, 256*4, 150, 16, chunk_size, num_workers=16)
 train_dataset = gen_data.MyOwnDataset(args.train_dataset, chunk_size)
 
 if not os.path.exists(args.test_dataset) or args.overwrite:
-    gen_data.make_dataset(args.test_dataset, 256, 150, 4, chunk_size, num_workers=4)
+    gen_data.make_dataset(args.test_dataset, 256, 150, 16, chunk_size, num_workers=16)
 test_dataset = gen_data.MyOwnDataset(args.test_dataset, chunk_size)
 
 
@@ -114,10 +116,15 @@ def test(loader):
 
     return np.mean(accs) / np.var(ys)#np.mean(np.abs(ys - np.mean(ys)))
 
-
+results = []
 for i in range(args.epochs):
     l = train(i)
     if i % 10 == 0:
+        torch.save(model.state_dict(), args.save_model)
         print('epoch ', i, ' loss: ', l, ' train error: ', test(train_loader),'; test error: ', test(test_loader))
-
+    results.append([i, l, test(train_loader), test(test_loader)])
+    f = open(args.save_results, 'wb')
+    pickle.dump(results, f)
+    f.close()
+    
 print(args.train_examples, test(train_loader), test(test_loader))

@@ -88,13 +88,13 @@ class Net(torch.nn.Module):
         super(Net, self).__init__()
 
         # self.nn = nn.Sequential(nn.Linear(1, 2), nn.ReLU())
-        self.channels = 8
+        self.channels = 64
         self.conv1 = MyLayer(2, 4, self.channels, self.channels)
 
         self.convs = nn.ModuleList()
         self.conv_atts = nn.ModuleList()
 
-        for i in range():
+        for i in range(4):
             self.convs.append(MyLayer(self.channels, 4, self.channels, self.channels))
             self.conv_atts.append(GATConv(self.channels + 2, self.channels))
 
