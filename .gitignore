@@ -105,5 +105,3 @@ venv.bak/
 
 pytorch_geometric
 .idea/
-LKHPyInterface/data/bk/
-LKHPyInterface/data/*
